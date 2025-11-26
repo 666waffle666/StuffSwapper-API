@@ -1,0 +1,37 @@
+services:
+  app:
+    build: .
+    container_name: stuffswapper_api
+    ports:
+      - "8000:8000"
+    env_file: ".env"
+    command: poetry run uvicorn api:api --host 0.0.0.0 --port 8000 --reload
+
+  celery:
+    build: .
+    container_name: stuffswapper_celery_worker
+    command: poetry run celery -A api.core.celery_app.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+    env_file: ".env"
+  db:
+    image: postgres:15
+    container_name: stuffswapper_postgres
+    restart: always
+    env_file: ".env"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: stuffswapper_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  pgdata:
+  redis-data:
