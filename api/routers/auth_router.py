@@ -18,7 +18,7 @@ from api.database.redis import (
     get_resend_count,
     increment_resend_count,
 )
-from api.services.vefification import (
+from api.services.verification import (
     create_verification_for_user,
     verify_token_and_activate,
     send_verification_email_bg,

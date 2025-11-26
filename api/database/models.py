@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, String, Boolean, DateTime, UUID, func
+from sqlalchemy import ForeignKey, String, Boolean, DateTime, UUID, func, Text
 from api.database import Base
 from uuid import uuid4, UUID as UID
 from datetime import datetime
@@ -28,6 +28,7 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    items = relationship("Item", back_populates="owner")
 
 
 class EmailVerification(Base):
@@ -48,3 +49,52 @@ class EmailVerification(Base):
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="email_verifications")
+
+
+class Item(Base):
+    __tablename__ = "items"
+
+    id: Mapped[UID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    owner_id: Mapped[UID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.uuid"))
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    owner = relationship("User", back_populates="items")
+    images = relationship(
+        "ItemImage", back_populates="item", cascade="all, delete-orphan"
+    )
+
+
+class ItemImage(Base):
+    __tablename__ = "item_images"
+
+    id: Mapped[UID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    item_id: Mapped[UID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id"), nullable=False
+    )
+    image_url: Mapped[str] = mapped_column(String, nullable=False)
+
+    item = relationship("Item", back_populates="images")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+    id: Mapped[UID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    sender_id: Mapped[UID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.uuid"), nullable=False
+    )
+    recipient_id: Mapped[UID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.uuid"), nullable=False
+    )
+    item_id: Mapped[UID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("items.id"), nullable=True
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    sender = relationship("User", foreign_keys=[sender_id])
+    recipient = relationship("User", foreign_keys=[recipient_id])
+    item = relationship("Item", foreign_keys=[item_id])
